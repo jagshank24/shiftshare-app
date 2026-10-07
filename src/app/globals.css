@@ -1,0 +1,187 @@
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+/* ==========================================================================
+   CARNIVAL — GLOBAL STYLES
+   Tokens live in tailwind.config.ts. The CSS variables below mirror the
+   canonical brand values so plain CSS / inline styles can use them too.
+   ========================================================================== */
+
+:root {
+  /* Brand */
+  --carnival-navy: #1b2a49;
+  --carnival-accent: #ffc93c;
+  --carnival-coral: #ff6b6b;
+  --carnival-mint: #2ec4b6;
+  --carnival-cream: #faf8f3;
+
+  /* Semantic */
+  --background: var(--carnival-cream);
+  --surface: #ffffff;
+  --foreground: var(--carnival-navy);
+  --muted: #31415f;
+  --border: #e6eaf3;
+  --focus-ring: var(--carnival-navy);
+
+  color-scheme: light;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem; /* room for a sticky header */
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    min-height: 100dvh;
+  }
+
+  /* Chunky display type for headings by default */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display), var(--font-sans), ui-sans-serif, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+    color: var(--carnival-navy);
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* ------------------------------------------------------------------
+     Global focus fallback: every focusable element gets a visible,
+     high-contrast ring unless a component opts into its own styling.
+     ------------------------------------------------------------------ */
+  :focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Elements that sit on navy surfaces */
+  .on-dark :focus-visible,
+  .on-dark:focus-visible {
+    outline-color: var(--carnival-accent);
+  }
+
+  ::selection {
+    background-color: var(--carnival-accent);
+    color: var(--carnival-navy);
+  }
+
+  /* Native form bits inherit the palette */
+  ::placeholder {
+    color: #6e7ca1;
+    opacity: 1;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* Kill the mobile tap-highlight flash */
+  a,
+  button,
+  [role="button"],
+  label {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Nicer scrollbars where supported */
+  @supports (scrollbar-color: red blue) {
+    * {
+      scrollbar-color: #cbd3e6 transparent;
+      scrollbar-width: thin;
+    }
+  }
+}
+
+@layer components {
+  /* Shared focus treatment for interactive components. */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2 focus-visible:ring-offset-cream;
+  }
+
+  /* Same, but for components sitting on a navy / dark surface. */
+  .focus-ring-inverse {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-navy-900;
+  }
+
+  /* Mobile-first page container. */
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Decorative carnival textures */
+  .bg-carnival-dots {
+    background-image: radial-gradient(currentColor 1.5px, transparent 1.5px);
+    background-size: 16px 16px;
+    background-position: 0 0;
+  }
+
+  .bg-carnival-stripes {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      currentColor 0,
+      currentColor 2px,
+      transparent 2px,
+      transparent 10px
+    );
+  }
+}
+
+@layer utilities {
+  /* Reserve space so content doesn't jump when a scrollbar appears. */
+  .scrollbar-gutter-stable {
+    scrollbar-gutter: stable;
+  }
+
+  .text-shadow-festive {
+    text-shadow: 0 2px 0 rgb(27 42 73 / 0.12);
+  }
+}
+
+/* Respect users who'd rather not be bounced around. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Keep prints clean if anyone prints a ticket. */
+@media print {
+  body {
+    background: #fff;
+  }
+}

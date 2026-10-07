@@ -1,0 +1,117 @@
+BEGIN
+CREATE TABLE
+GRANT
+INSERT 0 5
+INSERT 0 3
+INSERT 0 3
+INSERT 0 3
+INSERT 0 1
+DO
+DO
+DO
+DO
+DO
+DO
+DO
+DO
+ result |  section  |                                 label                                 |                                                                                                                                                                                                                                                                               detail                                                                                                                                                                                                                                                                                
+--------+-----------+-----------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ PASS   | anon      | cannot create events                                                  | blocked by RLS
+ PASS   | anon      | cannot read profiles                                                  | table privilege denied
+ PASS   | anon      | cannot read signups                                                   | table privilege denied
+ PASS   | anon      | cannot see unpublished drafts                                         | saw 0
+ PASS   | anon      | sees published events                                                 | saw 2 of 2
+ PASS   | anon      | sees roles only for published events                                  | saw 2 of 2
+ PASS   | anon      | sees shifts only for published events                                 | saw 2 of 2
+ PASS   | cascade   | deleting an event removes its roles                                   | 0 left
+ PASS   | cascade   | keeps the volunteer's profile                                         | 1 left
+ PASS   | cascade   | removes its checkins                                                  | 0 left
+ PASS   | cascade   | removes its shifts                                                    | 0 left
+ PASS   | cascade   | removes its signups                                                   | 0 left
+ PASS   | checkin   | cannot insert a verified checkin                                      | blocked by trigger
+ PASS   | checkin   | organizer can verify hours                                            | 1 rows
+ PASS   | checkin   | other volunteers cannot see checkins                                  | saw 0
+ PASS   | checkin   | unrelated organizer cannot see checkins                               | saw 0
+ PASS   | checkin   | verification stamps organizer and time                                | verified=t by=a1ace000-0000-4000-8000-000000000001
+ PASS   | checkin   | volunteer can check in to own shift                                   | row created
+ PASS   | checkin   | volunteer can correct own tap time                                    | 1 rows
+ PASS   | checkin   | volunteer cannot self-verify                                          | blocked by trigger
+ PASS   | organizer | can add roles to own event                                            | 1 rows
+ PASS   | organizer | can edit own shifts                                                   | 1 rows
+ PASS   | organizer | can read signups on own event                                         | 1 rows
+ PASS   | organizer | can read volunteers on own event                                      | 1 rows
+ PASS   | organizer | can update own event                                                  | 1 rows
+ PASS   | organizer | cannot create an event for someone else                               | blocked by RLS
+ PASS   | organizer | cannot delete another organizer's event                               | 0 rows
+ PASS   | organizer | cannot edit another organizer's roles                                 | 0 rows
+ PASS   | organizer | cannot edit another organizer's shifts                                | 0 rows
+ PASS   | organizer | cannot hand event to someone else                                     | blocked by WITH CHECK
+ PASS   | organizer | cannot read unrelated profiles                                        | 0 rows
+ PASS   | organizer | cannot update another organizer's event                               | 0 rows
+ PASS   | organizer | sees own drafts + published events                                    | saw 3 of 3
+ PASS   | qr        | exactly 1 in and 1 out checkin exist for the signup                   | 2 rows
+ PASS   | qr        | old token is rejected after refresh                                   | {"code": "invalid_token", "event_id": "e0000000-0000-4000-8000-0000000000c1", "timezone": "UTC", "event_slug": "qr-checkin-carnival", "event_title": "QR Checkin Carnival"}
+ PASS   | qr        | organizer manually sets checkout and flags adjusted_by_organizer      | {"code": "adjusted", "signup_id": "50000004-0000-4000-8000-0000000000c2", "shift_hours": 1.50, "checked_in_at": "2026-10-06T23:45:07.457588+00:00", "checked_out_at": "2026-10-07T01:15:07.457588+00:00", "adjusted_by_organizer": true}
+ PASS   | qr        | organizer refreshes QR token and invalidates old token                | {"code": "refreshed", "token": "fd8b73a873544506876f31b34b4224506aa29a80e77247e58aac72577eca5ef8"}
+ PASS   | qr        | second scan checks volunteer OUT with 1.50 shift hours                | {"code": "checked_out", "event_id": "e0000000-0000-4000-8000-0000000000c1", "timezone": "UTC", "role_name": "Welcome Booth", "signup_id": "50000004-0000-4000-8000-0000000000c1", "event_slug": "qr-checkin-carnival", "event_title": "QR Checkin Carnival", "shift_hours": 1.50, "total_hours": 1.50, "checked_in_at": "2026-10-07T00:15:07.457588+00:00", "shift_ends_at": "2026-10-07T03:05:07.457588+00:00", "checked_out_at": "2026-10-07T01:45:07.457588+00:00", "shift_starts_at": "2026-10-07T01:35:07.457588+00:00"}
+ PASS   | qr        | shift outside [-30m, +30m] returns outside_window + organizer contact | {"code": "outside_window", "event_id": "e0000000-0000-4000-8000-0000000000c1", "timezone": "UTC", "role_name": "Welcome Booth", "signup_id": "95b34635-088e-449a-ab0e-fc4843d63051", "event_slug": "qr-checkin-carnival", "event_title": "QR Checkin Carnival", "shift_ends_at": "2026-10-07T05:45:07.457588+00:00", "organizer_name": "Alice Ortiz", "organizer_email": "alice@example.com", "shift_starts_at": "2026-10-07T04:45:07.457588+00:00", "window_opens_at": "2026-10-07T04:15:07.457588+00:00", "window_closes_at": "2026-10-07T05:15:07.457588+00:00"}
+ PASS   | qr        | shift within [-30m, +30m] checks volunteer IN                         | {"code": "checked_in", "event_id": "e0000000-0000-4000-8000-0000000000c1", "timezone": "UTC", "role_name": "Welcome Booth", "signup_id": "50000004-0000-4000-8000-0000000000c1", "event_slug": "qr-checkin-carnival", "event_title": "QR Checkin Carnival", "checked_in_at": "2026-10-07T01:45:07.457588+00:00", "shift_ends_at": "2026-10-07T03:05:07.457588+00:00", "shift_starts_at": "2026-10-07T01:35:07.457588+00:00"}
+ PASS   | qr        | third scan is idempotent (already_checked_out, no duplicate rows)     | {"code": "already_checked_out", "event_id": "e0000000-0000-4000-8000-0000000000c1", "timezone": "UTC", "role_name": "Welcome Booth", "signup_id": "50000004-0000-4000-8000-0000000000c1", "event_slug": "qr-checkin-carnival", "event_title": "QR Checkin Carnival", "shift_hours": 1.50, "total_hours": 1.50, "checked_in_at": "2026-10-07T00:15:07.457588+00:00", "shift_ends_at": "2026-10-07T03:05:07.457588+00:00", "checked_out_at": "2026-10-07T01:45:07.457588+00:00", "shift_starts_at": "2026-10-07T01:35:07.457588+00:00"}
+ PASS   | qr        | unsigned-up volunteer gets not_signed_up                              | {"code": "not_signed_up", "event_id": "e0000000-0000-4000-8000-0000000000c1", "timezone": "UTC", "event_slug": "qr-checkin-carnival", "event_title": "QR Checkin Carnival"}
+ PASS   | qr        | validate_checkin_token accepts valid token                            | {"code": "ok", "valid": true, "event_id": "e0000000-0000-4000-8000-0000000000c1", "timezone": "UTC", "event_slug": "qr-checkin-carnival", "event_title": "QR Checkin Carnival"}
+ PASS   | qr        | validate_checkin_token rejects invalid token                          | {"code": "invalid_token", "valid": false, "event_id": "e0000000-0000-4000-8000-0000000000c1", "event_slug": "qr-checkin-carnival", "event_title": "QR Checkin Carnival"}
+ PASS   | qr        | volunteer cannot call organizer_set_checkout                          | {"code": "forbidden"}
+ PASS   | qr        | volunteer cannot refresh QR token                                     | {"code": "forbidden"}
+ PASS   | rpc       | a canceled spot is free again                                         | 0 claimed
+ PASS   | rpc       | a second tap is not a second spot                                     | already
+ PASS   | rpc       | a standby place does not block a signup                               | confirmed
+ PASS   | rpc       | allows the shift straight after                                       | confirmed
+ PASS   | rpc       | anon cannot claim a spot                                              | permission denied
+ PASS   | rpc       | anon cannot read a draft's counts                                     | 0 rows
+ PASS   | rpc       | anon may read spot counts                                             | 4 shifts
+ PASS   | rpc       | canceling nothing says so                                             | not_signed_up
+ PASS   | rpc       | canceling touches only your own row                                   | 1 still claimed
+ PASS   | rpc       | cancels a claimed spot                                                | cancelled
+ PASS   | rpc       | claims an open spot                                                   | confirmed
+ PASS   | rpc       | confirming reports the standby place it took back                     | 1
+ PASS   | rpc       | counts standby separately                                             | 1 waiting
+ PASS   | rpc       | counts the claimed spots                                              | 1 taken
+ PASS   | rpc       | does not queue twice                                                  | already_waitlist
+ PASS   | rpc       | joins standby when the shift is full                                  | waitlist
+ PASS   | rpc       | names the shift it clashes with                                       | Check-in table
+ PASS   | rpc       | re-signing up after canceling works                                   | confirmed
+ PASS   | rpc       | refuses a clashing shift                                              | overlap
+ PASS   | rpc       | refuses a draft event's shift                                         | not_published
+ PASS   | rpc       | refuses a shift that is over                                          | past
+ PASS   | rpc       | reports the clashing event's timezone                                 | America/Los_Angeles
+ PASS   | rpc       | says when a shift is gone                                             | not_found
+ PASS   | rpc       | signs up only the caller                                              | 1 rows
+ PASS   | rpc       | standby does not take a spot                                          | 1 taken
+ PASS   | rpc       | the overlapping standby place is released                             | 0 left waiting
+ PASS   | trigger   | email signup saves chosen role                                        | role=organizer
+ PASS   | trigger   | google signup gets name but no role                                   | role= name=Erin Kim
+ PASS   | trigger   | volunteer role saved                                                  | role=volunteer
+ PASS   | verify    | anon can verify single-event certificate code                         | {"code": "SS-CAROL2026X--e0000000-0000-4000-8000-0000000000c1", "valid": true, "events": [{"hours": 1.50, "event_id": "e0000000-0000-4000-8000-0000000000c1", "timezone": "UTC", "role_name": "Welcome Booth", "event_date": "2026-10-07T00:45:07.457588+00:00", "event_title": "QR Checkin Carnival", "organizer_name": "Alice Ortiz"}], "total_hours": 1.50, "volunteer_id": "ca401000-0000-4000-8000-000000000003", "volunteer_name": "Carol Diaz", "verification_code": "SS-CAROL2026X"}
+ PASS   | verify    | anon can verify valid certificate code and read hours                 | {"code": "SS-CAROL2026X", "valid": true, "events": [{"hours": 1.50, "event_id": "e0000000-0000-4000-8000-0000000000c1", "timezone": "UTC", "role_name": "Welcome Booth", "event_date": "2026-10-07T00:45:07.457588+00:00", "event_title": "QR Checkin Carnival", "organizer_name": "Alice Ortiz"}], "total_hours": 1.50, "volunteer_id": "ca401000-0000-4000-8000-000000000003", "volunteer_name": "Carol Diaz", "verification_code": "SS-CAROL2026X"}
+ PASS   | verify    | invalid certificate code returns invalid_code                         | {"code": "invalid_code", "valid": false}
+ PASS   | volunteer | can cancel own signup                                                 | 2 rows
+ PASS   | volunteer | can read own profile                                                  | saw 1
+ PASS   | volunteer | can sign self up for a published shift                                | saw 2
+ PASS   | volunteer | can update own profile                                                | 1 rows
+ PASS   | volunteer | cannot edit another profile                                           | 0 rows
+ PASS   | volunteer | cannot read another profile                                           | saw 0
+ PASS   | volunteer | cannot sign up another volunteer                                      | blocked by RLS
+ PASS   | volunteer | cannot sign up for an unpublished event                               | blocked by RLS
+ PASS   | volunteer | cannot sign up twice for one shift                                    | unique constraint
+ PASS   | volunteer | cannot touch another volunteer's signup                               | 0 rows
+ PASS   | volunteer | other volunteers see no signups                                       | saw 0
+ PASS   | volunteer | sees own signups                                                      | saw 1
+(90 rows)
+
+            summary            
+-------------------------------
+ 90 passed, 0 failed, 90 total
+(1 row)
+
+DO
+ROLLBACK
