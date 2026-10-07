@@ -12,6 +12,7 @@ import {
   type ShiftAction,
 } from "@/components/signup/ShiftActionControl";
 import { createClient } from "@/lib/supabase/server";
+import { createDemoSupabaseClient } from "@/lib/demo/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import {
   eventDayWithYear,
@@ -84,7 +85,7 @@ type MySignupRow = {
  * Wrapped in `cache` so `generateMetadata` and the page share one query —
  * and so the metadata still describes the event the visitor actually opened.
  */
-const loadEvent = cache(async (id: string): Promise<EventRecord | null> => {
+const loadEvent = cache(async (id: string): Promise<{ event: EventRecord | null; useDemoClient: boolean }> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("events")
@@ -94,7 +95,23 @@ const loadEvent = cache(async (id: string): Promise<EventRecord | null> => {
     .eq(UUID.test(id) ? "id" : "slug", id)
     .maybeSingle();
 
-  return (data as unknown as EventRecord | null) ?? null;
+  if (data) {
+    return { event: data as unknown as EventRecord, useDemoClient: false };
+  }
+
+  const demoSupabase = createDemoSupabaseClient(null);
+  const { data: demoData } = await demoSupabase
+    .from("events")
+    .select(
+      "id, title, description, location, starts_at, ends_at, slug, published, timezone, organizer_id, organizer:profiles(full_name)",
+    )
+    .eq(UUID.test(id) ? "id" : "slug", id)
+    .maybeSingle();
+
+  return {
+    event: (demoData as unknown as EventRecord | null) ?? null,
+    useDemoClient: Boolean(demoData),
+  };
 });
 
 export async function generateMetadata({
@@ -103,7 +120,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const event = await loadEvent(id);
+  const { event } = await loadEvent(id);
 
   if (!event) return { title: "Event not found" };
 
@@ -179,7 +196,7 @@ export default async function PublicEventPage({
 }) {
   const { id } = await params;
 
-  const event = await loadEvent(id);
+  const { event, useDemoClient } = await loadEvent(id);
   if (!event) {
     if (!isSupabaseConfigured) {
       return (
@@ -208,7 +225,9 @@ export default async function PublicEventPage({
     notFound();
   }
 
-  const supabase = await createClient();
+  const supabase = useDemoClient
+    ? createDemoSupabaseClient(null)
+    : await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

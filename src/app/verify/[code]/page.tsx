@@ -11,6 +11,7 @@ import {
 import { Logo } from "@/components/site/Logo";
 import { AuthNotConfigured } from "@/components/auth/AuthNotConfigured";
 import { createClient } from "@/lib/supabase/server";
+import { createDemoSupabaseClient } from "@/lib/demo/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { eventDayWithYear } from "@/lib/events/format";
 import { formatHoursToTwoDecimals } from "@/lib/checkin/hours";
@@ -33,10 +34,16 @@ export default async function VerifyCertificatePage({
   const decodedCode = decodeURIComponent(rawParam ?? "").trim();
 
   const supabase = await createClient();
-  const result = await resolveCertificateByVerificationCode(
+  let result = await resolveCertificateByVerificationCode(
     supabase,
     decodedCode,
   );
+  if (!result.valid) {
+    result = await resolveCertificateByVerificationCode(
+      createDemoSupabaseClient(null),
+      decodedCode,
+    );
+  }
 
   if (!result.valid && !isSupabaseConfigured && !decodedCode.toUpperCase().startsWith("SS-")) {
     return (
