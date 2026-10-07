@@ -36,6 +36,13 @@ export type SignupResult = {
   capacity?: number;
   /** Standby places released because they overlapped the new signup. */
   released_standby?: number;
+  /** Standby volunteer promoted to confirmed when a confirmed volunteer cancels. */
+  promoted?: {
+    signup_id: string;
+    volunteer_id: string;
+    volunteer_email: string | null;
+    volunteer_name: string | null;
+  } | null;
 };
 export type CheckinKind = "in" | "out";
 
@@ -173,6 +180,7 @@ export type Signup = {
   volunteer_id: string;
   status: SignupStatus;
   note: string | null;
+  reminder_sent?: boolean;
   created_at: string;
   updated_at: string;
 };

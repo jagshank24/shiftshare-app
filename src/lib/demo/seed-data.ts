@@ -54,6 +54,7 @@ function makeSignup(
 ): Signup {
   return {
     note: row.note ?? null,
+    reminder_sent: row.reminder_sent ?? false,
     updated_at: row.created_at,
     ...row,
   };

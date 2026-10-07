@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { eventTimeRange } from "@/lib/events/format";
+import {
+  notifyConfirmedSignup,
+  notifyStandbyPromotion,
+} from "@/lib/email";
 import type { SignupResult } from "@/lib/supabase/database.types";
 
 /**
@@ -83,7 +86,6 @@ async function run(
   slug: string,
   kind: "signup" | "cancel",
 ): Promise<SignupActionResult> {
-  if (!isSupabaseConfigured) return reply("not_configured");
   if (!UUID.test(shiftId)) return reply("bad_request");
 
   const supabase = await createClient();
@@ -110,6 +112,31 @@ async function run(
   }
 
   const result = (data ?? { code: "bad_request" }) as SignupResult;
+
+  // Send email notifications on confirmed signup or standby promotion.
+  // Email failures are logged inside `lib/email.ts` and never block this action.
+  if (kind === "signup" && result.code === "confirmed") {
+    await notifyConfirmedSignup({
+      supabase,
+      shiftId,
+      volunteerId: user.id,
+      volunteerEmail: user.email,
+      volunteerName:
+        typeof user.user_metadata?.full_name === "string"
+          ? user.user_metadata.full_name
+          : null,
+    });
+  } else if (
+    kind === "cancel" &&
+    result.code === "cancelled" &&
+    result.promoted
+  ) {
+    await notifyStandbyPromotion({
+      supabase,
+      shiftId,
+      promoted: result.promoted,
+    });
+  }
 
   // Counts and list state have both moved on.
   if (SLUG.test(slug)) revalidatePath(`/events/${slug}`);

@@ -25,6 +25,15 @@ const demoState = {
   checkins: structuredClone(DEMO_CHECKINS),
 };
 
+export function resetDemoState(): void {
+  demoState.profiles = structuredClone(DEMO_PROFILES);
+  demoState.events = structuredClone(DEMO_EVENTS);
+  demoState.roles = structuredClone(DEMO_ROLES);
+  demoState.shifts = structuredClone(DEMO_SHIFTS);
+  demoState.signups = structuredClone(DEMO_SIGNUPS);
+  demoState.checkins = structuredClone(DEMO_CHECKINS);
+}
+
 export function getDemoUser(role: UserRole | null): User | null {
   if (!role) return null;
   const profileId = role === "organizer" ? DEMO_ORGANIZER_ID : DEMO_VOLUNTEER_ID;
@@ -314,64 +323,142 @@ export function createDemoSupabaseClient(
       if (fnName === "cancel_shift" || fnName === "cancel_signup") {
         const shiftId = String(args.p_shift_id ?? "");
         if (!user) {
-          return { data: null, error: { message: "Not authenticated" } };
+          return { data: { code: "unauthenticated" }, error: null };
         }
-        const idx = demoState.signups.findIndex(
-          (sg) => sg.shift_id === shiftId && sg.volunteer_id === user.id,
+        const existing = demoState.signups.find(
+          (sg) =>
+            sg.shift_id === shiftId &&
+            sg.volunteer_id === user.id &&
+            sg.status !== "cancelled",
         );
-        if (idx !== -1) {
-          const removed = demoState.signups.splice(idx, 1)[0];
-          let promoted = false;
-          if (removed.status === "confirmed") {
-            const nextWaitlist = demoState.signups.find(
-              (sg) => sg.shift_id === shiftId && sg.status === "waitlist",
-            );
-            if (nextWaitlist) {
-              nextWaitlist.status = "confirmed";
-              promoted = true;
-            }
-          }
-          return { data: { cancelled: true, promoted }, error: null };
+        if (!existing) {
+          return {
+            data: { code: "not_signed_up", cancelled: false, promoted: null },
+            error: null,
+          };
         }
-        return { data: { cancelled: false, promoted: false }, error: null };
+
+        const wasConfirmed =
+          existing.status === "confirmed" || existing.status === "pending";
+        existing.status = "cancelled";
+        existing.updated_at = new Date().toISOString();
+
+        let promotedInfo: {
+          signup_id: string;
+          volunteer_id: string;
+          volunteer_email: string | null;
+          volunteer_name: string | null;
+        } | null = null;
+
+        if (wasConfirmed) {
+          const nextWaitlist = demoState.signups
+            .filter((sg) => sg.shift_id === shiftId && sg.status === "waitlist")
+            .sort((a, b) => a.created_at.localeCompare(b.created_at))[0];
+
+          if (nextWaitlist) {
+            nextWaitlist.status = "confirmed";
+            nextWaitlist.reminder_sent = false;
+            nextWaitlist.updated_at = new Date().toISOString();
+            const promotedProfile = demoState.profiles.find(
+              (p) => p.id === nextWaitlist.volunteer_id,
+            );
+            promotedInfo = {
+              signup_id: nextWaitlist.id,
+              volunteer_id: nextWaitlist.volunteer_id,
+              volunteer_email: promotedProfile?.email ?? null,
+              volunteer_name: promotedProfile?.full_name ?? null,
+            };
+          }
+        }
+
+        return {
+          data: {
+            code: "cancelled",
+            cancelled: true,
+            promoted: promotedInfo,
+          },
+          error: null,
+        };
       }
 
-      if (fnName === "claim_shift") {
+      if (fnName === "claim_shift" || fnName === "sign_up_for_shift") {
         const shiftId = String(args.p_shift_id ?? "");
         if (!user) {
-          return { data: { status: "unauthenticated" }, error: null };
+          return {
+            data: { code: "unauthenticated", status: "unauthenticated" },
+            error: null,
+          };
         }
         const shift = demoState.shifts.find((s) => s.id === shiftId);
         if (!shift) {
-          return { data: { status: "not_found" }, error: null };
+          return {
+            data: { code: "not_found", status: "not_found" },
+            error: null,
+          };
         }
         const existing = demoState.signups.find(
-          (sg) => sg.shift_id === shiftId && sg.volunteer_id === user.id,
+          (sg) =>
+            sg.shift_id === shiftId &&
+            sg.volunteer_id === user.id &&
+            sg.status !== "cancelled",
         );
         if (existing) {
+          const code =
+            existing.status === "waitlist" ? "already_waitlist" : "already";
           return {
-            data: { status: "already_signed_up", signup_status: existing.status },
+            data: {
+              code,
+              status: "already_signed_up",
+              signup_status: existing.status,
+            },
             error: null,
           };
         }
         const confirmedCount = demoState.signups.filter(
-          (sg) => sg.shift_id === shiftId && sg.status === "confirmed",
+          (sg) =>
+            sg.shift_id === shiftId &&
+            (sg.status === "confirmed" || sg.status === "pending"),
         ).length;
         const nextStatus =
           confirmedCount < shift.capacity ? "confirmed" : "waitlist";
         const nowIso = new Date().toISOString();
-        const newSignup = {
-          id: `a0000000-0000-4000-8000-${Math.random().toString(16).slice(2, 14).padEnd(12, "0")}`,
-          shift_id: shiftId,
-          volunteer_id: user.id,
-          status: nextStatus as "confirmed" | "waitlist",
-          note: null,
-          created_at: nowIso,
-          updated_at: nowIso,
-        };
-        demoState.signups.push(newSignup);
+
+        const cancelledRow = demoState.signups.find(
+          (sg) =>
+            sg.shift_id === shiftId &&
+            sg.volunteer_id === user.id &&
+            sg.status === "cancelled",
+        );
+
+        let signupId: string;
+        if (cancelledRow) {
+          cancelledRow.status = nextStatus as "confirmed" | "waitlist";
+          cancelledRow.reminder_sent = false;
+          cancelledRow.updated_at = nowIso;
+          signupId = cancelledRow.id;
+        } else {
+          signupId = `a0000000-0000-4000-8000-${Math.random().toString(16).slice(2, 14).padEnd(12, "0")}`;
+          demoState.signups.push({
+            id: signupId,
+            shift_id: shiftId,
+            volunteer_id: user.id,
+            status: nextStatus as "confirmed" | "waitlist",
+            note: null,
+            reminder_sent: false,
+            created_at: nowIso,
+            updated_at: nowIso,
+          });
+        }
+
         return {
-          data: { status: nextStatus, signup_id: newSignup.id },
+          data: {
+            code: nextStatus,
+            status: nextStatus,
+            signup_id: signupId,
+            taken: confirmedCount + (nextStatus === "confirmed" ? 1 : 0),
+            capacity: shift.capacity,
+            released_standby: 0,
+          },
           error: null,
         };
       }

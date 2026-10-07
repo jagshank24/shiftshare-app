@@ -10,11 +10,13 @@ import {
   type VolunteerThankYouInput,
   type VolunteerThankYouResult,
 } from "@/lib/ai";
+import { notifyStandbyPromotion } from "@/lib/email";
 import {
   AI_INPUT_LIMITS,
   checkRateLimit,
   validateInputLength,
 } from "@/lib/rate-limit";
+import type { SignupResult } from "@/lib/supabase/database.types";
 
 /**
  * Cancels a volunteer's upcoming shift directly from `/dashboard`.
@@ -36,8 +38,15 @@ export async function cancelVolunteerShiftFromDashboardAction(
     return { ok: false, error: "Log in again to cancel your shift." };
   }
 
+  let promoted: SignupResult["promoted"] = null;
   try {
-    await supabase.rpc("cancel_signup", { p_shift_id: trimmed });
+    const { data } = await supabase.rpc("cancel_signup", {
+      p_shift_id: trimmed,
+    });
+    const rpcResult = data as SignupResult | null;
+    if (rpcResult?.promoted) {
+      promoted = rpcResult.promoted;
+    }
   } catch {
     // Fall back to direct update below
   }
@@ -50,6 +59,14 @@ export async function cancelVolunteerShiftFromDashboardAction(
 
   if (error) {
     return { ok: false, error: "Couldn't cancel that shift. Try again." };
+  }
+
+  if (promoted) {
+    await notifyStandbyPromotion({
+      supabase,
+      shiftId: trimmed,
+      promoted,
+    });
   }
 
   revalidatePath("/dashboard");

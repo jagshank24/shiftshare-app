@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "seed": "tsx scripts/seed.ts",
-    "test": "tsx src/lib/planner/planner.test.ts && tsx src/lib/events/events.test.ts && tsx --test src/lib/checkin/checkin.test.ts && tsx --test src/lib/volunteer/volunteer-and-analytics.test.ts && tsx --test src/lib/demo/judging-pass.test.ts"
+    "test": "tsx src/lib/planner/planner.test.ts && tsx src/lib/events/events.test.ts && tsx --test src/lib/checkin/checkin.test.ts && tsx --test src/lib/volunteer/volunteer-and-analytics.test.ts && tsx --test src/lib/demo/judging-pass.test.ts && tsx --test src/lib/email.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
@@ -22,6 +22,7 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "recharts": "^3.10.1",
+    "resend": "^6.32.1",
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
